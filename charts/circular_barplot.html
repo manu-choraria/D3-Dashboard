@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
+
+<!-- Function for radial charts -->
+<script src="https://cdn.jsdelivr.net/gh/holtzy/D3-graph-gallery@master/LIB/d3-scale-radial.js"></script>
+
+<!-- Create a div where the graph will take place -->
+<div id="my_dataviz3"></div>
+<script>
+var margin3 = {top3: 100, right3:10, bottom3: 100, left3: 24},
+    width3 = 600 - margin3.left3 - margin3.right3,
+    padding=150
+    legendh=450
+    height3 = 520 - margin3.top3 - margin3.bottom3,
+    innerRadius = 90,
+    outerRadius = Math.min(width3, height3) / 2;   // the outerRadius goes from the middle of the SVG area to the border
+
+// append the svg object
+var svgc = d3.select("#my_dataviz3")
+  .append("svg")
+    .attr("width", width3 + margin3.left3 + margin3.right3)
+    .attr("height", height3 + margin3.top3 + margin3.bottom3+180)
+  .append("g")
+    .attr("transform", "translate(" + (width3 / 2 + margin3.left3+40) + "," + (height3 / 2 + margin3.top3+40) + ")");
+    svgc.append("text")
+        .attr("x", -250)   
+        .attr("y",-270 )
+        .attr("dy", "0em" )
+        .attr("text-anchor", "start")  
+        .style("font-size", "22px")  
+        .style("font-weight", "bold")
+        .text("Comparison of various states & Union Territories")
+
+d3.csv("state_ut_crimes.csv", function(data) {
+
+  // X scale: common for 2 data series
+  var x = d3.scaleBand()
+      .range([0, 2 * Math.PI])    // X axis goes from 0 to 2pi = all around the circle. If I stop at 1Pi, it will be around a half circle
+      .align(0)                  // This does nothing
+      .domain(data.map(function(d) { return d.States; })); // The domain of the X axis is the list of states.
+
+  // Y scale outer variable
+  var y = d3.scaleRadial()
+      .range([innerRadius, outerRadius])   // Domain will be define later.
+      .domain([0, 13000]); // Domain of Y is from 0 to the max seen in the data
+
+  // Second barplot Scales
+  var ybis = d3.scaleRadial()
+      .range([innerRadius, 5])   // Domain will be defined later.
+      .domain([0, 13000]);
+// Add the bars
+svgc.append("g")
+    .selectAll("path")
+    .data(data)
+    .enter()
+    .append("path")
+      .attr("fill", "#69b3a2")
+      .attr("class", "yo")
+      .attr("d", d3.arc()     // imagine your doing a part of a donut plot
+          .innerRadius(innerRadius)
+          .outerRadius(function(d) { return y(d['total_cases']); })
+          .startAngle(function(d) { return x(d.States); })
+          .endAngle(function(d) { return x(d.States) + x.bandwidth(); })
+          .padAngle(0.01)
+          .padRadius(innerRadius))
+          .on("mouseover", function() { tooltip3.style("display", null); })
+          .on("mouseout", function() { tooltip3.style("display", "none"); })
+          .on("mousemove", function(d) {
+      console.log(d.total_cases);
+      var xPosition = d3.mouse(this)[0]+30;
+      var yPosition = d3.mouse(this)[1] ;
+      tooltip3.attr("transform", "translate(" + xPosition + "," + yPosition + ")");
+      tooltip3.select("text").text(d.States+":"+d.total_cases);
+    });
+    var tooltip3 = svgc.append("g")
+    .attr("class", "tooltip")
+    .style("display", "none");
+      
+  tooltip3.append("rect")
+    .attr("width", 100)
+    .attr("height", 20)
+    .attr("fill", "lightsteelblue")
+    .style("opacity", 0.5);
+
+  tooltip3.append("text")
+    .attr("x", 50)
+    .attr("dy", "1.2em")
+    .style("text-anchor", "middle")
+    .attr("font-size", "12px")
+    .attr("font-weight", "bold");
+
+  // Add the labels
+  svgc.append("g")
+      .selectAll("g")
+      .data(data)
+      .enter()
+      .append("g")
+        .attr("text-anchor", function(d) { return (x(d.States) + x.bandwidth() / 2 + Math.PI) % (2 * Math.PI) < Math.PI ? "end" : "start"; })
+        .attr("transform", function(d) { return "rotate(" + ((x(d.States) + x.bandwidth() / 2) * 180 / Math.PI - 90) + ")"+"translate(" + (y(d['total_cases'])+10) + ",0)"; })
+      .append("text")
+        .text(function(d){return(d.States)})
+        .attr("transform", function(d) { return (x(d.States) + x.bandwidth() / 2 + Math.PI) % (2 * Math.PI) < Math.PI ? "rotate(180)" : "rotate(0)"; })
+        .style("font-size", "11px")
+        .attr("alignment-baseline", "middle")
+
+  // Add the second series
+  svgc.append("g")
+    .selectAll("path")
+    .data(data)
+    .enter()
+    .append("path")
+      .attr("fill", "red")
+      .attr("d", d3.arc()     // imagine your doing a part of a donut plot
+          .innerRadius( function(d) { return ybis(0) })
+          .outerRadius( function(d) { return ybis(d['total_assaults']); })
+          .startAngle(function(d) { return x(d.States); })
+          .endAngle(function(d) { return x(d.States) + x.bandwidth(); })
+          .padAngle(0.01)
+          .padRadius(innerRadius))
+          .on("mouseover", function() { tooltip4.style("display", null); })
+          .on("mouseout", function() { tooltip4.style("display", "none"); })
+          .on("mousemove", function(d) {
+      console.log(d.total_assaults);
+      var xPosition = d3.mouse(this)[0]+30;
+      var yPosition = d3.mouse(this)[1] ;
+      tooltip4.attr("transform", "translate(" + xPosition + "," + yPosition + ")");
+      tooltip4.select("text").text(d.States+":"+d.total_assaults);
+    });
+    var tooltip4 = svgc.append("g")
+    .attr("class", "tooltip")
+    .style("display", "none");
+      
+  tooltip4.append("rect")
+    .attr("width", 100)
+    .attr("height", 20)
+    .attr("fill", "lightsteelblue")
+    .style("opacity", 0.5);
+
+  tooltip4.append("text")
+    .attr("x", 50)
+    .attr("dy", "1.2em")
+    .style("text-anchor", "middle")
+    .attr("font-size", "12px")
+    .attr("font-weight", "bold");
+    
+    var subgroup=data.columns.slice(1)
+    var color = d3.scaleOrdinal()
+        .domain(subgroup)
+        .range(['red','#69b3a2'])
+
+    var legendc = svgc.append('g')
+        .attr('class', 'legend')
+        .attr('transform', 'translate(' + (padding+20) + ','+ (height3 -legendh-100)  + ')');
+
+    legendc.selectAll('rect')
+        .data(subgroup)
+        .enter()
+        .append('rect')
+        .attr('x', -50)
+        .attr('y', function(d,i){
+            return i * 18;
+        })
+        .attr('width', 16)
+        .attr('height', 16)
+        .attr('fill', function(d,i){return color(d)});
+
+        legendc.selectAll('text')
+        .data(subgroup)
+        .enter()
+        .append('text')
+        .text(function(d){
+            return d;
+        })
+        .attr('x', -30)
+        .attr('y', function(d, i){
+            return i * 18;
+        })
+        // .attr("dy", "1em")
+        .attr("font-size", "16px") 
+        .attr('text-anchor', 'start')
+        .attr('alignment-baseline', 'hanging');
+
+});
+</script>

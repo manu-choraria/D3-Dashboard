@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        .arc text {
+            font: 10px sans-serif;
+            text-anchor: start;
+        }
+
+        .arc path {
+            stroke: rgb(255, 255, 255);
+        }
+
+        .title {
+            fill: rgb(0, 0, 0);
+            font: 22px TimesNewRoman;
+            font-weight: bold;
+        }
+  
+  div.tooltip {	
+    position: absolute;			
+    text-align: center;			
+    width: 60px;					
+    height: 45px;					
+    padding: 2px;				
+    font: 12px sans-serif;		
+    background: lightsteelblue;	
+    border: 0px;		
+    border-radius: 8px;			
+    pointer-events: none;	
+    font-weight: bold;		
+  }
+    </style>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+</head>
+
+<body>
+
+    <!-- pie chart -->
+    <div>
+        <svg width="600" height="600" style="margin-left: 5%;"></svg>
+        <script>
+            
+            var svg = d3.select("svg"),
+                width = svg.attr("width"),
+                height = svg.attr("height")-100,
+                radius = Math.min(width, height) / 2;
+            var div = d3.select("body").append("div")	
+               .attr("class", "tooltip")				
+               .style("opacity", 0);
+
+            var g = svg.append("g")
+                .attr("transform", "translate(" + (width / 2) + "," + (height / 2+50) + ")");
+
+            var color = d3.scaleOrdinal(['#EA6A47', '#1C4E80','#A5D8DD']);
+
+            var pie = d3.pie().value(function (d) {
+                return d.total_cases;
+            });
+
+            var path = d3.arc()
+                .outerRadius(radius - 10)
+                .innerRadius(80);
+
+            var label = d3.arc()
+                .outerRadius(radius)
+                .innerRadius(radius - 80);
+                var pack = d3.pack()
+    .size([width, height])
+    .padding(1.5);
+
+            d3.csv("crimes_contribution.csv", function (error, data) {
+                if (error) {
+                    throw error;
+                }
+                var root = d3.hierarchy({children: data})
+      .sum(function(d) { return d.value; })
+
+  var node = svg.selectAll(".node")
+    .data(pack(root).leaves())
+    .enter().append("g")
+      .attr("class", "node")
+      .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+                var arc = g.selectAll(".arc")
+                    .data(pie(data))
+                    .enter().append("g")
+                    .attr("class", "arc");
+
+                arc.append("path")
+                    .attr("d", path)
+                    .attr("fill", function (d) { return color(d.data.crime); })
+                    .on("mouseover", function(d) {		
+               div.transition()		
+                .duration(200)		
+                .style("opacity", .9);
+               var duration = 300;
+                data.forEach(function(d, i) {
+                node.transition().duration(duration).delay(i * duration)
+                .attr("r", d.value);
+});	
+                div.html(d.data.crime + ": <br>"+d.data.total_cases)	
+                .style("left", (d3.event.pageX) + "px")		
+                .style("top", (d3.event.pageY - 28) + "px");	
+  })					
+                .on("mouseout", function(d) {		
+                div.transition()		
+                .duration(500)		
+                .style("opacity", 0);	
+  });
+  node.append("text")
+      .text(function(d) {
+     return d.data.total_cases;});
+
+                // arc.append("text")
+                //     .attr("transform", function (d) {
+                //         return "translate(" + label.centroid(d) + ")";
+                //     })
+                //     .text(function (d) { return d.data.crime; });
+
+            svg.append("g")
+                .attr("transform", "translate(" + (width / 2 - 220) + "," +30 + ")")
+                .append("text")
+                .attr("class", "title")
+                .text("Contribution of various crimes in total cases")
+
+                var legend = svg.selectAll(".legend")
+                .data(data).enter()
+                .append("g")
+                .attr("class","legend")
+                .attr("transform", "translate(" + 0 + "," + 80+ ")");
+     
+ 
+                legend.append("rect")
+                .attr("x", 0) 
+                .attr("y", function(d, i) { return 24 * i; })
+                .attr("width", 16)
+                .attr("height", 16)
+		        .style("fill", function(d) { return color(d.crime)});
+   
+
+                legend.append("text")
+                .attr("x", 25) 
+    	        .attr("text-anchor", "start")
+                .attr("dy", "1em") 
+                .attr("y", function(d, i) { return 20 * i; })
+                .text(function(d) {return d.crime;})
+                .attr("font-size", "18px"); 
+  
+
+                legend.append("text")
+                .attr("x",20) 
+                .attr("dy", "-.2em")
+                .attr("y",0)
+                .text("Crimes")
+                .style("font-weight","bold")
+  	            .attr("font-size", "17px"); 
+
+
+});  
+  
+        </script>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+  <title>Stacked bar chart</title>
+</head>
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
+<body>
+
+<!-- Create a div where the graph will take place -->
+<div id="my_dataviz"></div>
+<script>
+
+  // set the dimensions and margins of the graph
+  var margin = {top: 70, right: 50, bottom: 70, left: 95},
+      width = 550 - margin.left - margin.right,
+      legendh =150,
+      padding=250,
+      height = 500- margin.top - margin.bottom;
+  
+  // append the svg object to the body of the page
+  var svg = d3.select("#my_dataviz")
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+            svg.append("text")
+            .attr("x", 30)   
+            .attr("y",-20 )
+            .attr("dy", "0em" )
+            .attr("text-anchor", "start")  
+            .style("font-size", "22px")  
+            .style("font-weight", "bold")
+            .text("Comparison of cases per crime per year ")
+  
+  // Parse the Data
+  d3.csv("year_wise_distribution.csv", function(data) {
+  
+    // List of subgroups = header of the csv files = soil condition here
+    var subgroups = data.columns.slice(1)
+  
+    // List of groups = species here = value of the first column called group -> I show them on the X axis
+    var groups = d3.map(data, function(d){return(d.group)}).keys()
+
+ // X label
+        svg.append('text')
+        .attr('x', 220)
+        .attr('y', 410)
+        .attr('text-anchor', 'middle')
+        .style('font-family', 'Helvetica')
+        .style('font-size', 14)
+        .style('font-weight','bold')
+        .text('Crime');
+        
+        // Y label
+        svg.append('text')
+        .attr('x', 170)
+        .attr('y', -90)
+        .attr('text-anchor', 'middle')
+        .attr('transform', 'translate(40,' + height + ')rotate(-90)')
+        .style('font-family', 'Helvetica')
+        .style('font-size', 14)
+        .style('font-weight','bold')
+        .text('Cases');
+  
+    // Add X axis
+    var x = d3.scaleBand()
+        .domain(groups)
+        .range([0, width+20])
+        .padding([0.2])
+    svg.append("g")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x).tickSizeOuter(0));
+  
+    // Add Y axis
+    var y = d3.scaleLinear()
+      .domain([0, 190000])
+      .range([ height, 0 ]);
+    svg.append("g")
+      .call(d3.axisLeft(y));
+  
+    // color palette = one color per subgroup
+    var color = d3.scaleOrdinal()
+      .domain(subgroups)
+      .range(['#6AB187','#065575','#2ab7ca', ' #fed766', ' #fe8a71' ,' #f4b6c2 '])
+  
+    //stack the data? --> stack per subgroup
+    var stackedData = d3.stack()
+      .keys(subgroups)
+      (data)
+  
+    // Show the bars
+    svg.append("g")
+      .selectAll("g")
+      // Enter in the stack data = loop key per key = group per group
+      .data(stackedData)
+      .enter().append("g")
+        .attr("fill", function(d,i) { return color(d.key); })
+        .selectAll("rect")
+        // enter a second time = loop subgroup per subgroup to add all rectangles
+        .data(function(d) { return d; })
+        .enter().append("rect")
+          .attr("x", function(d) { return x(d.data.group); })
+          .attr("y", function(d) { return y(d[1]); })
+          .attr("height", function(d) { return y(d[0]) - y(d[1]); })
+          .attr("width",x.bandwidth())
+          .on("mouseover", function() { tooltip2.style("display", null); })
+          .on("mouseout", function() { tooltip2.style("display", "none"); })
+          .on("mousemove", function(d) {
+      console.log(d);
+      var xPosition = d3.mouse(this)[0]-100 ;
+      var yPosition = d3.mouse(this)[1] ;
+      tooltip2.attr("transform", "translate(" + xPosition + "," + yPosition + ")");
+      tooltip2.select("text").text(d[1]-d[0]);
+    });
+    var tooltip2 = svg.append("g")
+    .attr("class", "tooltip")
+    .style("display", "none");
+      
+  tooltip2.append("rect")
+    .attr("width", 60)
+    .attr("height", 20)
+    .attr("fill", "lightsteelblue")
+    .style("opacity", 0.5);
+
+  tooltip2.append("text")
+    .attr("x", 30)
+    .attr("dy", "1.2em")
+    .style("text-anchor", "middle")
+    .attr("font-size", "12px")
+    .attr("font-weight", "bold");
+
+    var legend = svg.append('g')
+        .attr('class', 'legend')
+        .attr('transform', 'translate(' + (padding+150) + ','+ (height - legendh-190)  + ')');
+
+    legend.selectAll('rect')
+        .data(stackedData)
+        .enter()
+        .append('rect')
+        .attr('x', 0)
+        .attr('y',function(d,i){
+            return i * 18;
+        })
+ 	
+        .attr('width', 12)
+        .attr('height', 12)
+        .attr('fill', function(d,i){return color(d.key);
+        });
+
+    legend.selectAll('text')
+        .data(stackedData)
+        .enter()
+        .append('text')
+        .text(function(d){
+            return d.key;
+        })
+        .attr('x', 15)
+        .attr('y', function(d, i){
+            return i * 20;
+        })
+        .attr('text-anchor', 'start')
+        .attr('alignment-baseline', 'hanging');
+  })
+  
+  </script>
+  </body>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
+
+<!-- Create a div where the graph will take place -->
+<div id="my_dataviz2"></div>
+
+<script>
+
+  // set the dimensions and margins of the graph
+  var margin2 = {top1: 70, right1: 30, bottom1: 40, left1: 140},
+      width1 = 670 - margin2.left1 - margin2.right1,
+      padding=20,
+      legendh=380,
+      height1 = 450- margin2.top1 - margin2.bottom1;
+  
+  // append the svg object to the body of the page
+  var svg = d3.select("#my_dataviz2")
+    .append("svg")
+      .attr("width", width1 + margin2.left1 + margin2.right1)
+      .attr("height", height1 + margin2.top1 + margin2.bottom1)
+      .attr("overflow","visible")
+    .append("g")
+      .attr("transform",
+            "translate(" + margin2.left1 + "," + margin2.top1 + ")");
+
+            svg.append("text")
+    .attr("x", 90)   
+    .attr("y", -80 )
+    .attr("dy", "3.5em" )
+    .attr("text-anchor", "start")  
+    .style("font-size", "22px")  
+    .style("font-weight", "bold")
+    .text("Comparison of crimes in both year ")
+
+            svg.append('text')
+        .attr('x', 230)
+        .attr('y', 400)
+        .attr('text-anchor', 'middle')
+        .style('font-family', 'Helvetica')
+        .style('font-size', 14)
+        .style('font-weight','bold')
+        .text('Cases');
+        
+        // Y label
+        svg.append('text')
+        .attr('x', 170)
+        .attr('y', -90)
+        .attr('text-anchor', 'middle')
+        .attr('transform', 'translate(40,' + height1 + ')rotate(-90)')
+        .style('font-family', 'Helvetica')
+        .style('font-size', 14)
+        .style('font-weight','bold')
+        .text('Year');
+  
+  // Parse the Data
+  d3.csv("crime_wise_distribution.csv", function(data) {
+  
+    // List of subgroups = header of the csv files = soil condition here
+    var subgroups = data.columns.slice(1)
+  
+    // List of groups = species here = value of the first column called group -> I show them on the X axis
+    var groups = d3.map(data, function(d){return(d.Year)}).keys()
+  
+    // Add X axis
+    var x = d3.scaleBand()
+        .domain(groups)
+        .range([0, width1])
+        .padding([0.2])
+    svg.append("g")
+      .attr("transform", "translate(0," + height1 + ")")
+      .call(d3.axisBottom(x).tickSize(5));
+
+  
+  
+    // Add Y axis
+    var y = d3.scaleLinear()
+      .domain([0, 90000])
+      .range([ height1, 0 ]);
+    svg.append("g")
+      .call(d3.axisLeft(y));
+  
+    // Another scale for subgroup position?
+    var xSubgroup = d3.scaleBand()
+      .domain(subgroups)
+      .range([0, x.bandwidth()])
+      .padding([0.05])
+  
+    // color palette = one color per subgroup
+    var color = d3.scaleOrdinal()
+      .domain(subgroups)
+      .range(['#1C4E80','#0091D5','#69b3a2'])
+  
+    // Show the bars
+    svg.append("g")
+      .selectAll("g")
+      // Enter in data = loop group per group
+      .data(data)
+      .enter()
+      .append("g")
+        .attr("transform", function(d) { return "translate(" + x(d.Year) + ",0)"; })
+      .selectAll("rect")
+      .data(function(d) { return subgroups.map(function(key) { return {key: key, value: d[key]}; }); })
+      .enter().append("rect")
+        .attr("x", function(d) { return xSubgroup(d.key); })
+        .attr("y", function(d) { return y(d.value); })
+        .attr("width", xSubgroup.bandwidth())
+        .attr("height", function(d) { return height1 - y(d.value); })
+        .attr("fill", function(d,i) { return color(d.key); })
+        .on("mouseover", function() { tooltip3.style("display", null); })
+        .on("mouseout", function() { tooltip3.style("display", "none"); })
+        .on("mousemove", function(d) {
+    console.log(d);
+    var xPosition = d3.mouse(this)[0]-30 ;
+    var yPosition = d3.mouse(this)[1] ;
+    tooltip3.attr("transform", "translate(" + xPosition + "," + yPosition + ")");
+    tooltip3.select("text").text(d.key+":"+d.value);
+  });
+  var tooltip3 = svg.append("g")
+  .attr("class", "tooltip")
+  .style("display", "none");
+    
+tooltip3.append("rect")
+  .attr("width", 60)
+  .attr("height", 20)
+  .attr("fill", "lightsteelblue")
+  .style("opacity", 0.5);
+
+tooltip3.append("text")
+  .attr("x", 30)
+  .attr("dy", "1.2em")
+  .style("text-anchor", "middle")
+  .attr("font-size", "10px")
+  .attr("font-weight", "bold");
+
+var legendm = svg.append('g')
+      .attr('class', 'legend')
+      .attr('transform', 'translate(' + (padding+500) + ','+ (height1 -legendh+50)  + ')');
+
+  legendm.selectAll('rect')
+      .data(subgroups)
+      .enter()
+      .append('rect')
+      .attr('x', 0)
+      .attr('y', function(d,i){
+          return i * 18;
+      })
+      .attr('width', 12)
+      .attr('height', 14)
+      .attr('fill', function(d,i){return color(d);
+      });
+
+      legendm.selectAll('text')
+      .data(subgroups)
+      .enter()
+      .append('text')
+      .text(function(d){
+          return d;
+      })
+      .attr('x', 15)
+      .attr('y', function(d, i){
+          return i * 18;
+      })
+      // .attr("dy", "1em")
+      .attr("font-size", "19px") 
+      .attr('text-anchor', 'start')
+      .attr('alignment-baseline', 'hanging');
+    })
+        </script>
